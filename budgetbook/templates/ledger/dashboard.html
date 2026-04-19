@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}BudgetBook | 家計簿{% endblock %}
+
+{% block content %}
+  <div id="flash" class="flash"></div>
+  <div class="layout">
+    <section id="dashboard-content">
+      {% include 'ledger/partials/dashboard_content.html' %}
+    </section>
+
+    <aside id="form-panel" class="panel">
+      {% include 'ledger/partials/transaction_form_panel.html' %}
+    </aside>
+  </div>
+{% endblock %}

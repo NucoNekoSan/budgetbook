@@ -1,0 +1,54 @@
+<div class="panel__body">
+  <div class="toolbar toolbar--form">
+    <div>
+      <h2 class="section-title section-title--tight">{{ form_title }}</h2>
+      <div class="meta">登録後は一覧と集計が自動で更新されます。</div>
+    </div>
+  </div>
+
+  <form
+    hx-post="{{ form_action }}"
+    hx-target="#form-panel"
+    hx-swap="innerHTML"
+    class="form-grid"
+  >
+    <input type="hidden" name="month" value="{{ month_param }}">
+
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          <ul class="errors">
+            {% for error in field.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+      <ul class="errors">
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="button-row form-grid__actions">
+      <button class="btn btn--primary" type="submit">{{ submit_label }}</button>
+      <button
+        class="btn btn--ghost"
+        type="button"
+        hx-get="{{ cancel_url }}"
+        hx-target="#form-panel"
+        hx-swap="innerHTML"
+      >キャンセル</button>
+    </div>
+  </form>
+
+  <div class="meta form-footer">
+    カテゴリの追加や名称変更は設定画面（/settings/）から行えます。
+  </div>
+</div>

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}BudgetBook | 設定{% endblock %}
+
+{% block content %}
+  <div class="settings-layout">
+    <div class="toolbar">
+      <div>
+        <h1 class="page-title">設定</h1>
+        <div class="meta">口座・カテゴリの管理ができます。変更は取引入力フォームにすぐ反映されます。</div>
+      </div>
+      <a href="{% url 'ledger:dashboard' %}" class="btn btn--ghost">家計簿に戻る</a>
+    </div>
+
+    <section id="account-list">
+      {% include 'ledger/partials/account_list.html' %}
+    </section>
+
+    <section id="category-list">
+      {% include 'ledger/partials/category_list.html' %}
+    </section>
+  </div>
+{% endblock %}

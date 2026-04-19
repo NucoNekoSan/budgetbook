@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BudgetBook | ログイン</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+      .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .login-card {
+        width: 100%;
+        max-width: 400px;
+      }
+      .login-brand {
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-wrapper">
+      <div class="login-card panel">
+        <div class="panel__body">
+          <div class="login-brand">BudgetBook</div>
+
+          {% if form.errors %}
+            <ul class="errors">
+              <li>ユーザー名またはパスワードが正しくありません。</li>
+            </ul>
+          {% endif %}
+
+          <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <div class="field">
+              <label for="id_username">ユーザー名</label>
+              <input type="text" name="username" id="id_username" class="form-input"
+                     autocomplete="username" autofocus required>
+            </div>
+
+            <div class="field">
+              <label for="id_password">パスワード</label>
+              <input type="password" name="password" id="id_password" class="form-input"
+                     autocomplete="current-password" required>
+            </div>
+
+            <div class="form-grid__actions">
+              <button type="submit" class="btn btn--primary" style="width:100%;">ログイン</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

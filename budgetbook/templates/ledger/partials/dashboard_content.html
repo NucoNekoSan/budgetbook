@@ -1,0 +1,349 @@
+{% load ledger_extras %}
+<div class="stack">
+  <div class="panel">
+    <div class="panel__body">
+      <div class="toolbar">
+        <div>
+          <h1 class="page-title">{{ target_month|date:'Y年n月' }} の家計</h1>
+          <div class="meta">収支の登録・編集は右側フォームから行えます。</div>
+        </div>
+        <div class="button-row">
+          <button
+            class="btn btn--ghost"
+            hx-get="{% url 'ledger:dashboard' %}?{{ previous_month_query }}"
+            hx-target="#dashboard-content"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+          >← 前月</button>
+          {% if next_month_query %}
+          <button
+            class="btn btn--ghost"
+            hx-get="{% url 'ledger:dashboard' %}?{{ next_month_query }}"
+            hx-target="#dashboard-content"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+          >次月 →</button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if not has_accounts or not has_categories %}
+        <div class="helper">
+          先に初期データが必要です。`python manage.py seed_budget_data` を実行するか、管理画面から口座・カテゴリを作成してください。
+        </div>
+      {% endif %}
+
+      <div class="cards">
+        <div class="card card--income">
+          <div class="card__label">収入</div>
+          <div class="card__value">{{ income|yen }}</div>
+        </div>
+        <div class="card card--expense">
+          <div class="card__label">支出</div>
+          <div class="card__value">{{ expense|yen }}</div>
+        </div>
+        <div class="card {% if net > 0 %}card--net-positive{% elif net < 0 %}card--net-negative{% else %}card--net{% endif %}">
+          <div class="card__label">差額</div>
+          <div class="card__value">{{ net|yen }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__body">
+      <h2 class="section-title">支出カテゴリ別</h2>
+      {% if expense_by_category %}
+        <ul class="list">
+          {% for item in expense_by_category %}
+            <li class="list-item">
+              <span>{{ item.category__name }}</span>
+              <strong>{{ item.total|yen }}</strong>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty">この月の支出はまだ登録されていません。</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__body">
+      <h2 class="section-title">収支推移（12か月）</h2>
+      <div class="chart-container">
+        <canvas id="trend-chart"></canvas>
+      </div>
+      {{ monthly_trend|json_script:"monthly-trend-data" }}
+      <script>
+        (function() {
+          function initTrendChart() {
+            var el = document.getElementById('trend-chart');
+            if (!el || typeof Chart === 'undefined') return;
+            if (window._trendChart) {
+              window._trendChart.destroy();
+              window._trendChart = null;
+            }
+            var raw = JSON.parse(document.getElementById('monthly-trend-data').textContent);
+            var labels = raw.map(function(d) { return d.label; });
+            var incomes = raw.map(function(d) { return d.income; });
+            var expenses = raw.map(function(d) { return d.expense; });
+            var nets = raw.map(function(d) { return d.net; });
+            window._trendChart = new Chart(el, {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    label: '収入',
+                    data: incomes,
+                    backgroundColor: 'rgba(22, 101, 52, 0.7)',
+                    borderRadius: 4,
+                    order: 2
+                  },
+                  {
+                    label: '支出',
+                    data: expenses,
+                    backgroundColor: 'rgba(185, 28, 28, 0.7)',
+                    borderRadius: 4,
+                    order: 2
+                  },
+                  {
+                    label: '差額',
+                    data: nets,
+                    type: 'line',
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false,
+                    order: 1
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      callback: function(v) {
+                        return '¥' + v.toLocaleString();
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          }
+          if (typeof htmx !== 'undefined') {
+            htmx.onLoad(function(elt) {
+              if (elt.querySelector && elt.querySelector('#trend-chart')) {
+                initTrendChart();
+              }
+            });
+          }
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTrendChart);
+          } else {
+            initTrendChart();
+          }
+        })();
+      </script>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__body">
+      <h2 class="section-title">口座残高</h2>
+      <div class="meta">{{ target_month|date:'Y年n月' }}末時点の残高</div>
+      {% if account_balances %}
+        <ul class="list">
+          {% for account in account_balances %}
+            <li class="list-item">
+              <div>
+                <div><strong>{{ account.name }}</strong></div>
+                <div class="meta">初期残高 {{ account.opening_balance|yen }}</div>
+              </div>
+              <strong>{{ account.current_balance|yen }}</strong>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty">表示できる口座がありません。</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel__body">
+      <div class="toolbar">
+        <div>
+          <h2 class="section-title section-title--tight">取引一覧</h2>
+          {% if page_obj.paginator.count %}
+            <div class="meta">
+              {% if is_filtered %}絞り込み結果: {% endif %}全 {{ page_obj.paginator.count }} 件中
+              {{ page_obj.start_index }}〜{{ page_obj.end_index }} 件目
+            </div>
+          {% endif %}
+        </div>
+        {% if page_obj.paginator.count %}
+          <a
+            href="{% url 'ledger:transaction_export' %}?month={{ month_param }}"
+            class="btn btn--ghost"
+          >CSV ダウンロード</a>
+        {% endif %}
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-bar__field--grow">
+          <label class="meta" for="filter-q">摘要</label>
+          <input
+            id="filter-q"
+            name="q"
+            type="text"
+            class="form-input"
+            placeholder="キーワード"
+            value="{{ filter_q }}"
+            form="filter-form"
+          >
+        </div>
+        <div class="filter-bar__field">
+          <label class="meta" for="filter-account">口座</label>
+          <select id="filter-account" name="account" class="form-input" form="filter-form">
+            <option value="">すべて</option>
+            {% for acct in all_accounts %}
+              <option value="{{ acct.pk }}" {% if acct.pk == filter_account %}selected{% endif %}>{{ acct.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-bar__field">
+          <label class="meta" for="filter-category">カテゴリ</label>
+          <select id="filter-category" name="category" class="form-input" form="filter-form">
+            <option value="">すべて</option>
+            {% for cat in all_categories %}
+              <option value="{{ cat.pk }}" {% if cat.pk == filter_category %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-bar__actions">
+          <form
+            id="filter-form"
+            hx-get="{% url 'ledger:dashboard' %}"
+            hx-target="#dashboard-content"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+            class="filter-bar__form"
+          >
+            <input type="hidden" name="month" value="{{ month_param }}">
+            <button type="submit" class="btn btn--ghost">検索</button>
+          </form>
+          {% if is_filtered %}
+            <button
+              class="btn btn--ghost"
+              hx-get="{% url 'ledger:dashboard' %}?month={{ month_param }}"
+              hx-target="#dashboard-content"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+            >クリア</button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if is_filtered %}
+        <div class="meta filter-status">
+          絞り込み中:
+          {% if filter_q %}摘要「{{ filter_q }}」{% endif %}
+          {% if filter_account %}{% for acct in all_accounts %}{% if acct.pk == filter_account %}口座「{{ acct.name }}」{% endif %}{% endfor %}{% endif %}
+          {% if filter_category %}{% for cat in all_categories %}{% if cat.pk == filter_category %}カテゴリ「{{ cat.name }}」{% endif %}{% endfor %}{% endif %}
+        </div>
+      {% endif %}
+
+      {% if page_obj.object_list %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>摘要</th>
+                <th>口座</th>
+                <th>カテゴリ</th>
+                <th>金額</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tx in page_obj.object_list %}
+                <tr>
+                  <td>{{ tx.date|date:'Y-m-d' }}</td>
+                  <td>
+                    <div><strong>{{ tx.description }}</strong></div>
+                    {% if tx.memo %}<div class="meta">{{ tx.memo|truncatechars:40 }}</div>{% endif %}
+                  </td>
+                  <td>{{ tx.account.name }}</td>
+                  <td>
+                    <span class="chip {% if tx.category.kind == 'income' %}chip--income{% else %}chip--expense{% endif %}">
+                      {{ tx.category.name }}
+                    </span>
+                  </td>
+                  <td class="{% if tx.category.kind == 'income' %}amount-income{% else %}amount-expense{% endif %}">
+                    {% if tx.category.kind == 'income' %}+{% else %}-{% endif %}{{ tx.amount|yen }}
+                  </td>
+                  <td>
+                    <div class="inline-actions">
+                      <button
+                        class="btn btn--ghost"
+                        hx-get="{% url 'ledger:transaction_update' tx.pk %}?month={{ month_param }}"
+                        hx-target="#form-panel"
+                        hx-swap="innerHTML"
+                      >編集</button>
+                      <button
+                        class="btn btn--danger"
+                        hx-get="{% url 'ledger:transaction_delete' tx.pk %}?month={{ month_param }}"
+                        hx-target="#form-panel"
+                        hx-swap="innerHTML"
+                      >削除</button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+          <div class="button-row pagination">
+            {% if page_obj.has_previous %}
+              <button
+                class="btn btn--ghost"
+                hx-get="{% url 'ledger:dashboard' %}?month={{ month_param }}&page={{ page_obj.previous_page_number }}{% if filter_qs %}&{{ filter_qs }}{% endif %}"
+                hx-target="#dashboard-content"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+              >← 前ページ</button>
+            {% endif %}
+            <span class="meta pagination__current">
+              {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ
+            </span>
+            {% if page_obj.has_next %}
+              <button
+                class="btn btn--ghost"
+                hx-get="{% url 'ledger:dashboard' %}?month={{ month_param }}&page={{ page_obj.next_page_number }}{% if filter_qs %}&{{ filter_qs }}{% endif %}"
+                hx-target="#dashboard-content"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+              >次ページ →</button>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      {% else %}
+        <div class="empty">{% if is_filtered %}条件に一致する取引はありません。{% else %}この月の取引はまだありません。{% endif %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,81 @@
+{% load ledger_extras %}
+<div class="panel">
+  <div class="panel__body">
+    <div class="toolbar">
+      <h2 class="section-title">口座</h2>
+      <button
+        class="btn btn--ghost"
+        hx-get="{% url 'ledger:account_create' %}"
+        hx-target="#account-list"
+        hx-swap="innerHTML"
+      >+ 追加</button>
+    </div>
+
+    {% if flash_message %}
+      <div class="flash__message">{{ flash_message }}</div>
+    {% endif %}
+
+    {% if show_account_form or not accounts %}
+      {% include 'ledger/partials/account_form.html' with form=account_form action_url=action_url form_title='口座を追加' submit_label='追加する' is_new=True %}
+    {% endif %}
+
+    {% if accounts %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>口座名</th>
+              <th>初期残高</th>
+              <th>状態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for acct in accounts %}
+              {% if edit_account_pk == acct.pk %}
+                <tr>
+                  <td colspan="4">
+                    {% include 'ledger/partials/account_form.html' with form=edit_account_form form_title='口座を編集' submit_label='更新する' edit_pk=acct.pk is_new=False %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr class="{% if not acct.is_active %}row--inactive{% endif %}">
+                  <td>
+                    <strong>{{ acct.name }}</strong>
+                    {% if acct.notes %}<div class="meta">{{ acct.notes|truncatechars:40 }}</div>{% endif %}
+                  </td>
+                  <td>{{ acct.opening_balance|yen }}</td>
+                  <td>
+                    {% if acct.is_active %}
+                      <span class="chip chip--income">有効</span>
+                    {% else %}
+                      <span class="chip chip--expense">無効</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="inline-actions">
+                      <button
+                        class="btn btn--ghost"
+                        hx-get="{% url 'ledger:account_update' acct.pk %}"
+                        hx-target="#account-list"
+                        hx-swap="innerHTML"
+                      >編集</button>
+                      <button
+                        class="btn {% if acct.is_active %}btn--danger{% else %}btn--ghost{% endif %}"
+                        hx-post="{% url 'ledger:account_toggle' acct.pk %}"
+                        hx-target="#account-list"
+                        hx-swap="innerHTML"
+                      >{% if acct.is_active %}無効にする{% else %}有効にする{% endif %}</button>
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif not show_account_form %}
+      <div class="empty">口座がまだ登録されていません。「+ 追加」から口座を作成してください。</div>
+    {% endif %}
+  </div>
+</div>

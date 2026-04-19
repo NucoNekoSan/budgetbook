@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load ledger_extras %}
+
+{% block title %}BudgetBook | {{ year }}年 年間サマリー{% endblock %}
+
+{% block content %}
+  <div class="annual-layout">
+    <div class="toolbar">
+      <div>
+        <h1 class="page-title">{{ year }}年 年間サマリー</h1>
+        <div class="meta">各月をクリックすると月別ダッシュボードへ移動します。</div>
+      </div>
+      <div class="button-row">
+        <a href="{% url 'ledger:annual' %}?year={{ prev_year }}" class="btn btn--ghost">← 前年</a>
+        {% if next_year %}
+          <a href="{% url 'ledger:annual' %}?year={{ next_year }}" class="btn btn--ghost">次年 →</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card card--income">
+        <div class="card__label">年間収入</div>
+        <div class="card__value">{{ total_income|yen }}</div>
+      </div>
+      <div class="card card--expense">
+        <div class="card__label">年間支出</div>
+        <div class="card__value">{{ total_expense|yen }}</div>
+      </div>
+      <div class="card {% if total_net > 0 %}card--net-positive{% elif total_net < 0 %}card--net-negative{% else %}card--net{% endif %}">
+        <div class="card__label">年間差額</div>
+        <div class="card__value">{{ total_net|yen }}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__body">
+        <h2 class="section-title">月別内訳</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>月</th>
+                <th>収入</th>
+                <th>支出</th>
+                <th>差額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in months %}
+                <tr>
+                  <td>
+                    <a href="{% url 'ledger:dashboard' %}?month={{ m.month_param }}" class="annual-month-link">{{ m.label }}</a>
+                  </td>
+                  <td class="amount-income">{{ m.income|yen }}</td>
+                  <td class="amount-expense">{{ m.expense|yen }}</td>
+                  <td class="{% if m.net > 0 %}amount-income{% elif m.net < 0 %}amount-expense{% endif %}">
+                    {{ m.net|yen }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="annual-total-row">
+                <td><strong>合計</strong></td>
+                <td class="amount-income"><strong>{{ total_income|yen }}</strong></td>
+                <td class="amount-expense"><strong>{{ total_expense|yen }}</strong></td>
+                <td class="{% if total_net > 0 %}amount-income{% elif total_net < 0 %}amount-expense{% endif %}">
+                  <strong>{{ total_net|yen }}</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__body">
+        <h2 class="section-title">年間推移</h2>
+        <div class="chart-container">
+          <canvas id="annual-chart"></canvas>
+        </div>
+        {{ annual_trend|json_script:"annual-trend-data" }}
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            var el = document.getElementById('annual-chart');
+            if (!el || typeof Chart === 'undefined') return;
+            var raw = JSON.parse(document.getElementById('annual-trend-data').textContent);
+            var labels = raw.map(function(d) { return d.label; });
+            var incomes = raw.map(function(d) { return d.income; });
+            var expenses = raw.map(function(d) { return d.expense; });
+            var nets = raw.map(function(d) { return d.net; });
+            new Chart(el, {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    label: '収入',
+                    data: incomes,
+                    backgroundColor: 'rgba(22, 101, 52, 0.7)',
+                    borderRadius: 4,
+                    order: 2
+                  },
+                  {
+                    label: '支出',
+                    data: expenses,
+                    backgroundColor: 'rgba(185, 28, 28, 0.7)',
+                    borderRadius: 4,
+                    order: 2
+                  },
+                  {
+                    label: '差額',
+                    data: nets,
+                    type: 'line',
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false,
+                    order: 1
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      callback: function(v) {
+                        return '¥' + v.toLocaleString();
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+{% endblock %}
