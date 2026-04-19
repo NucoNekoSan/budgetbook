@@ -598,6 +598,57 @@ def _build_annual_summary(year: int) -> list[dict]:
 
 @login_required
 @require_http_methods(['GET'])
+def expense_breakdown(request: HttpRequest) -> HttpResponse:
+    today = date.today()
+    year = clamp_future_year(parse_year(request.GET.get('year')))
+    target_month = clamp_future_month(parse_month(request.GET.get('month')))
+
+    expense_qs = Transaction.objects.filter(category__kind=Category.Kind.EXPENSE)
+
+    # 月間集計
+    m_start = target_month
+    m_end = shift_month(target_month, 1)
+    monthly_rows = list(
+        expense_qs.filter(date__gte=m_start, date__lt=m_end)
+        .values('category_id', 'category__name')
+        .annotate(total=Sum('amount'))
+        .order_by('-total')
+    )
+    monthly_total = sum(r['total'] for r in monthly_rows)
+    for r in monthly_rows:
+        r['pct'] = round(r['total'] / monthly_total * 100, 1) if monthly_total else 0
+
+    # 年間集計
+    y_start = date(year, 1, 1)
+    y_end = date(year + 1, 1, 1)
+    yearly_rows = list(
+        expense_qs.filter(date__gte=y_start, date__lt=y_end)
+        .values('category_id', 'category__name')
+        .annotate(total=Sum('amount'))
+        .order_by('-total')
+    )
+    yearly_total = sum(r['total'] for r in yearly_rows)
+    for r in yearly_rows:
+        r['pct'] = round(r['total'] / yearly_total * 100, 1) if yearly_total else 0
+
+    next_month = shift_month(target_month, 1)
+    return render(request, 'ledger/expense_breakdown.html', {
+        'year': year,
+        'target_month': target_month,
+        'month_param': month_param(target_month),
+        'prev_month_param': month_param(shift_month(target_month, -1)),
+        'next_month_param': month_param(next_month) if target_month < clamp_future_month(next_month) else None,
+        'prev_year': year - 1,
+        'next_year': year + 1 if year < today.year else None,
+        'monthly_rows': monthly_rows,
+        'monthly_total': monthly_total,
+        'yearly_rows': yearly_rows,
+        'yearly_total': yearly_total,
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
 def annual(request: HttpRequest) -> HttpResponse:
     year = clamp_future_year(parse_year(request.GET.get('year')))
     months = _build_annual_summary(year)

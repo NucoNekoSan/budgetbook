@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load ledger_extras %}
+
+{% block title %}BudgetBook | 支出構成{% endblock %}
+
+{% block content %}
+  <div class="annual-layout">
+
+    {# ===== 月間セクション ===== #}
+    <div class="toolbar">
+      <div>
+        <h1 class="page-title">支出構成</h1>
+        <div class="meta">カテゴリ別の支出割合を確認できます。</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__body">
+        <div class="toolbar">
+          <h2 class="section-title">{{ target_month|date:"Y年n月" }} 月間支出</h2>
+          <div class="button-row">
+            <a href="{% url 'ledger:expense_breakdown' %}?month={{ prev_month_param }}&year={{ year }}" class="btn btn--ghost">&larr; 前月</a>
+            {% if next_month_param %}
+              <a href="{% url 'ledger:expense_breakdown' %}?month={{ next_month_param }}&year={{ year }}" class="btn btn--ghost">次月 &rarr;</a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if monthly_total > 0 %}
+          <div class="card card--expense" style="margin-bottom:16px">
+            <div class="card__label">合計支出</div>
+            <div class="card__value">{{ monthly_total|yen }}</div>
+          </div>
+          <div class="chart-container" style="height:260px;max-width:360px;margin:0 auto 18px">
+            <canvas id="monthly-pie"></canvas>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>カテゴリ</th><th>金額</th><th>割合</th></tr>
+              </thead>
+              <tbody>
+                {% for r in monthly_rows %}
+                  <tr>
+                    <td><strong>{{ r.category__name }}</strong></td>
+                    <td class="amount-expense">{{ r.total|yen }}</td>
+                    <td>{{ r.pct }}%</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty">{{ target_month|date:"Y年n月" }}の支出データがありません。</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ===== 年間セクション ===== #}
+    <div class="panel">
+      <div class="panel__body">
+        <div class="toolbar">
+          <h2 class="section-title">{{ year }}年 年間支出</h2>
+          <div class="button-row">
+            <a href="{% url 'ledger:expense_breakdown' %}?year={{ prev_year }}&month={{ month_param }}" class="btn btn--ghost">&larr; 前年</a>
+            {% if next_year %}
+              <a href="{% url 'ledger:expense_breakdown' %}?year={{ next_year }}&month={{ month_param }}" class="btn btn--ghost">次年 &rarr;</a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if yearly_total > 0 %}
+          <div class="card card--expense" style="margin-bottom:16px">
+            <div class="card__label">合計支出</div>
+            <div class="card__value">{{ yearly_total|yen }}</div>
+          </div>
+          <div class="chart-container" style="height:260px;max-width:360px;margin:0 auto 18px">
+            <canvas id="yearly-pie"></canvas>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>カテゴリ</th><th>金額</th><th>割合</th></tr>
+              </thead>
+              <tbody>
+                {% for r in yearly_rows %}
+                  <tr>
+                    <td><strong>{{ r.category__name }}</strong></td>
+                    <td class="amount-expense">{{ r.total|yen }}</td>
+                    <td>{{ r.pct }}%</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty">{{ year }}年の支出データがありません。</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ===== Chart.js 円グラフ ===== #}
+  {{ monthly_rows|json_script:"monthly-pie-data" }}
+  {{ yearly_rows|json_script:"yearly-pie-data" }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof Chart === 'undefined') return;
+
+      var COLORS = [
+        '#ef4444','#f97316','#eab308','#22c55e','#14b8a6',
+        '#3b82f6','#8b5cf6','#ec4899','#6366f1','#0ea5e9',
+        '#f43f5e','#a855f7','#84cc16','#06b6d4','#d946ef'
+      ];
+
+      function renderPie(canvasId, dataId) {
+        var el = document.getElementById(canvasId);
+        if (!el) return;
+        var raw = JSON.parse(document.getElementById(dataId).textContent);
+        if (!raw.length) return;
+        new Chart(el, {
+          type: 'doughnut',
+          data: {
+            labels: raw.map(function(r) { return r.category__name; }),
+            datasets: [{
+              data: raw.map(function(r) { return r.total; }),
+              backgroundColor: raw.map(function(_, i) { return COLORS[i % COLORS.length]; }),
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 14, padding: 10 } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    var v = ctx.parsed;
+                    var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                    var pct = total ? (v/total*100).toFixed(1) : 0;
+                    return ctx.label + ': \u00a5' + v.toLocaleString('ja-JP') + ' (' + pct + '%)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      renderPie('monthly-pie', 'monthly-pie-data');
+      renderPie('yearly-pie', 'yearly-pie-data');
+    });
+  </script>
+{% endblock %}

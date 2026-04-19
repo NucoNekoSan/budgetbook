@@ -130,14 +130,7 @@
                   legend: { position: 'bottom' }
                 },
                 scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      callback: function(v) {
-                        return '¥' + v.toLocaleString();
-                      }
-                    }
-                  }
+                  y: BudgetChart.yAxisConfig([incomes, expenses, nets])
                 }
               }
             });

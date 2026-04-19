@@ -13,6 +13,7 @@ urlpatterns = [
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
 
     path('annual/', views.annual, name='annual'),
+    path('expense-breakdown/', views.expense_breakdown, name='expense_breakdown'),
 
     path('settings/', views.settings_page, name='settings'),
     path('settings/accounts/new/', views.account_create, name='account_create'),
