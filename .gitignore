@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.venv/
+
+# Environment variables (secrets)
+.env
+
+# Database
+*.sqlite3
+
+# Static files (collected)
+budgetbook/staticfiles/
+
+# IDE
+.idea/
+
+# Backup
+budgetbook/backup/
+
+# OS
+Thumbs.db
+.DS_Store
