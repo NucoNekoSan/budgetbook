@@ -163,7 +163,7 @@ class DashboardSearchFilterTest(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class MonthlyTrendTest(TestCase):
+class DailyTrendTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -173,6 +173,7 @@ class MonthlyTrendTest(TestCase):
         cls.cat_expense = Category.objects.create(name='食費', kind=Category.Kind.EXPENSE)
 
         today = date.today()
+        cls.today = today
         cls.month_str = f'{today.year}-{today.month:02d}'
         Transaction.objects.create(
             date=today, account=cls.account, category=cls.cat_income,
@@ -186,24 +187,27 @@ class MonthlyTrendTest(TestCase):
     def setUp(self):
         self.client.login(username='test', password='pass')
 
-    def test_trend_has_12_months(self):
+    def test_trend_covers_all_days_in_month(self):
         resp = self.client.get(reverse('ledger:dashboard'), {'month': self.month_str})
-        trend = resp.context['monthly_trend']
-        self.assertEqual(len(trend), 12)
+        trend = resp.context['daily_trend']
+        from calendar import monthrange
+        expected_days = monthrange(self.today.year, self.today.month)[1]
+        self.assertEqual(len(trend), expected_days)
 
-    def test_trend_includes_current_month_data(self):
+    def test_trend_includes_today_data(self):
         resp = self.client.get(reverse('ledger:dashboard'), {'month': self.month_str})
-        trend = resp.context['monthly_trend']
-        current = trend[-1]
-        self.assertEqual(current['month'], self.month_str)
-        self.assertEqual(current['income'], 5000)
-        self.assertEqual(current['expense'], 2000)
-        self.assertEqual(current['net'], 3000)
+        trend = resp.context['daily_trend']
+        today_entry = trend[self.today.day - 1]
+        self.assertEqual(today_entry['label'], f'{self.today.day}日')
+        self.assertEqual(today_entry['income'], 5000)
+        self.assertEqual(today_entry['expense'], 2000)
+        self.assertEqual(today_entry['net'], 3000)
 
-    def test_trend_empty_months_have_zero(self):
+    def test_trend_empty_days_have_zero(self):
         resp = self.client.get(reverse('ledger:dashboard'), {'month': self.month_str})
-        trend = resp.context['monthly_trend']
-        empty = trend[0]
+        trend = resp.context['daily_trend']
+        empty_idx = 0 if self.today.day != 1 else 1
+        empty = trend[empty_idx]
         self.assertEqual(empty['income'], 0)
         self.assertEqual(empty['expense'], 0)
         self.assertEqual(empty['net'], 0)
@@ -213,10 +217,10 @@ class MonthlyTrendTest(TestCase):
             reverse('ledger:dashboard'),
             {'month': self.month_str, 'q': '存在しない'},
         )
-        trend = resp.context['monthly_trend']
-        current = trend[-1]
-        self.assertEqual(current['income'], 5000)
-        self.assertEqual(current['expense'], 2000)
+        trend = resp.context['daily_trend']
+        today_entry = trend[self.today.day - 1]
+        self.assertEqual(today_entry['income'], 5000)
+        self.assertEqual(today_entry['expense'], 2000)
 
 
 class TransactionCreateTest(TestCase):

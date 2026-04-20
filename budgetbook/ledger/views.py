@@ -104,15 +104,15 @@ def build_filter_query_string(filters: dict) -> str:
     return '&'.join(parts)
 
 
-def _build_monthly_trend(target_month: date) -> list[dict]:
-    trend_start = shift_month(target_month, -11)
-    trend_end = shift_month(target_month, 1)
+def _build_daily_trend(target_month: date) -> list[dict]:
+    start = target_month
+    end = shift_month(target_month, 1)
+    num_days = monthrange(target_month.year, target_month.month)[1]
 
     rows = (
         Transaction.objects
-        .filter(date__gte=trend_start, date__lt=trend_end)
-        .annotate(month=TruncMonth('date'))
-        .values('month')
+        .filter(date__gte=start, date__lt=end)
+        .values('date')
         .annotate(
             income=Coalesce(
                 Sum('amount', filter=Q(category__kind=Category.Kind.INCOME)),
@@ -123,24 +123,22 @@ def _build_monthly_trend(target_month: date) -> list[dict]:
                 Value(0, output_field=IntegerField()),
             ),
         )
-        .order_by('month')
+        .order_by('date')
     )
 
-    by_month = {row['month']: row for row in rows}
+    by_day = {row['date']: row for row in rows}
     result = []
-    cursor = trend_start
-    while cursor < trend_end:
-        row = by_month.get(cursor)
+    for d in range(1, num_days + 1):
+        key = date(target_month.year, target_month.month, d)
+        row = by_day.get(key)
         inc = row['income'] if row else 0
         exp = row['expense'] if row else 0
         result.append({
-            'month': cursor.strftime('%Y-%m'),
-            'label': f'{cursor.month}月',
+            'label': f'{d}日',
             'income': inc,
             'expense': exp,
             'net': inc - exp,
         })
-        cursor = shift_month(cursor, 1)
     return result
 
 
@@ -248,7 +246,7 @@ def get_dashboard_context(target_month: date, page: int = 1, filters: dict | Non
         'is_filtered': is_filtered,
         'all_accounts': all_accounts,
         'all_categories': all_categories,
-        'monthly_trend': _build_monthly_trend(target_month),
+        'daily_trend': _build_daily_trend(target_month),
     }
 
 

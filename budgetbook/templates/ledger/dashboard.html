@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}BudgetBook | 家計簿{% endblock %}
+{% block extra_js %}<script src="{% static 'js/dashboard_chart.js' %}" defer></script>{% endblock %}
 
 {% block content %}
   <div id="flash" class="flash"></div>

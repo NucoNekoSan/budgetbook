@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load ledger_extras %}
 
 {% block title %}BudgetBook | {{ year }}年 年間サマリー{% endblock %}
+{% block extra_js %}<script src="{% static 'js/annual_chart.js' %}" defer></script>{% endblock %}
 
 {% block content %}
   <div class="annual-layout">
@@ -82,60 +84,6 @@
           <canvas id="annual-chart"></canvas>
         </div>
         {{ annual_trend|json_script:"annual-trend-data" }}
-        <script>
-          document.addEventListener('DOMContentLoaded', function() {
-            var el = document.getElementById('annual-chart');
-            if (!el || typeof Chart === 'undefined') return;
-            var raw = JSON.parse(document.getElementById('annual-trend-data').textContent);
-            var labels = raw.map(function(d) { return d.label; });
-            var incomes = raw.map(function(d) { return d.income; });
-            var expenses = raw.map(function(d) { return d.expense; });
-            var nets = raw.map(function(d) { return d.net; });
-            new Chart(el, {
-              type: 'bar',
-              data: {
-                labels: labels,
-                datasets: [
-                  {
-                    label: '収入',
-                    data: incomes,
-                    backgroundColor: 'rgba(22, 101, 52, 0.7)',
-                    borderRadius: 4,
-                    order: 2
-                  },
-                  {
-                    label: '支出',
-                    data: expenses,
-                    backgroundColor: 'rgba(185, 28, 28, 0.7)',
-                    borderRadius: 4,
-                    order: 2
-                  },
-                  {
-                    label: '差額',
-                    data: nets,
-                    type: 'line',
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    fill: false,
-                    order: 1
-                  }
-                ]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'bottom' }
-                },
-                scales: {
-                  y: BudgetChart.yAxisConfig([incomes, expenses, nets])
-                }
-              }
-            });
-          });
-        </script>
       </div>
     </div>
   </div>

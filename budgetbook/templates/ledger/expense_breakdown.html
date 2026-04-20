@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load ledger_extras %}
 
 {% block title %}BudgetBook | 支出構成{% endblock %}
+{% block extra_js %}<script src="{% static 'js/expense_chart.js' %}" defer></script>{% endblock %}
 
 {% block content %}
   <div class="annual-layout">
@@ -103,54 +105,4 @@
   {# ===== Chart.js 円グラフ ===== #}
   {{ monthly_rows|json_script:"monthly-pie-data" }}
   {{ yearly_rows|json_script:"yearly-pie-data" }}
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof Chart === 'undefined') return;
-
-      var COLORS = [
-        '#ef4444','#f97316','#eab308','#22c55e','#14b8a6',
-        '#3b82f6','#8b5cf6','#ec4899','#6366f1','#0ea5e9',
-        '#f43f5e','#a855f7','#84cc16','#06b6d4','#d946ef'
-      ];
-
-      function renderPie(canvasId, dataId) {
-        var el = document.getElementById(canvasId);
-        if (!el) return;
-        var raw = JSON.parse(document.getElementById(dataId).textContent);
-        if (!raw.length) return;
-        new Chart(el, {
-          type: 'doughnut',
-          data: {
-            labels: raw.map(function(r) { return r.category__name; }),
-            datasets: [{
-              data: raw.map(function(r) { return r.total; }),
-              backgroundColor: raw.map(function(_, i) { return COLORS[i % COLORS.length]; }),
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 14, padding: 10 } },
-              tooltip: {
-                callbacks: {
-                  label: function(ctx) {
-                    var v = ctx.parsed;
-                    var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
-                    var pct = total ? (v/total*100).toFixed(1) : 0;
-                    return ctx.label + ': \u00a5' + v.toLocaleString('ja-JP') + ' (' + pct + '%)';
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-
-      renderPie('monthly-pie', 'monthly-pie-data');
-      renderPie('yearly-pie', 'yearly-pie-data');
-    });
-  </script>
 {% endblock %}
