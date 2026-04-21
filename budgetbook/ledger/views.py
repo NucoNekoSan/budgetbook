@@ -451,7 +451,12 @@ def account_create(request: HttpRequest) -> HttpResponse:
             'show_account_form': True,
         }
         return render(request, 'ledger/partials/account_list.html', context, status=422)
-    return _render_account_list(request)
+    context = {
+        'accounts': Account.objects.order_by('-is_active', 'name'),
+        'account_form': AccountForm(),
+        'show_account_form': True,
+    }
+    return render(request, 'ledger/partials/account_list.html', context)
 
 
 @login_required
@@ -512,7 +517,12 @@ def category_create(request: HttpRequest) -> HttpResponse:
             'show_category_form': True,
         }
         return render(request, 'ledger/partials/category_list.html', context, status=422)
-    return _render_category_list(request)
+    context = {
+        'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
+        'category_form': CategoryForm(),
+        'show_category_form': True,
+    }
+    return render(request, 'ledger/partials/category_list.html', context)
 
 
 @login_required
