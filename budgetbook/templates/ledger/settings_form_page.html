@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}BudgetBook | {{ page_title }}{% endblock %}
+
+{% block content %}
+  <div class="settings-layout">
+    <div class="toolbar">
+      <h1 class="page-title">{{ page_title }}</h1>
+      <a href="{% url 'ledger:settings' %}" class="btn btn--ghost">設定に戻る</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel__body">
+        <form method="post" action="{{ form_action }}" class="form-grid">
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="meta">{{ field.help_text }}</div>
+              {% endif %}
+              {% if field.errors %}
+                <ul class="errors">
+                  {% for error in field.errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          {% if form.non_field_errors %}
+            <ul class="errors">
+              {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+          <div class="button-row form-grid__actions">
+            <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+            <a href="{% url 'ledger:settings' %}" class="btn btn--ghost">キャンセル</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

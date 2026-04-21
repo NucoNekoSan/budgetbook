@@ -5,6 +5,7 @@ from calendar import monthrange
 from datetime import date
 from urllib.parse import quote
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import IntegerField, Q, Sum, Value
@@ -437,6 +438,15 @@ def _render_account_list(request: HttpRequest, flash: str = '') -> HttpResponse:
     return render(request, 'ledger/partials/account_list.html', context)
 
 
+def _render_account_form_page(request: HttpRequest, form: AccountForm, *, page_title: str, form_action: str, submit_label: str) -> HttpResponse:
+    return render(request, 'ledger/settings_form_page.html', {
+        'form': form,
+        'page_title': page_title,
+        'form_action': form_action,
+        'submit_label': submit_label,
+    })
+
+
 @login_required
 @require_http_methods(['GET', 'POST'])
 def account_create(request: HttpRequest) -> HttpResponse:
@@ -444,19 +454,20 @@ def account_create(request: HttpRequest) -> HttpResponse:
         form = AccountForm(request.POST)
         if form.is_valid():
             form.save()
-            return _render_account_list(request, '口座を追加しました。')
-        context = {
-            'accounts': Account.objects.order_by('-is_active', 'name'),
-            'account_form': form,
-            'show_account_form': True,
-        }
-        return render(request, 'ledger/partials/account_list.html', context, status=422)
-    context = {
-        'accounts': Account.objects.order_by('-is_active', 'name'),
-        'account_form': AccountForm(),
-        'show_account_form': True,
-    }
-    return render(request, 'ledger/partials/account_list.html', context)
+            messages.success(request, '口座を追加しました。')
+            return redirect('ledger:settings')
+        return _render_account_form_page(
+            request, form,
+            page_title='口座を追加',
+            form_action=reverse('ledger:account_create'),
+            submit_label='追加する',
+        )
+    return _render_account_form_page(
+        request, AccountForm(),
+        page_title='口座を追加',
+        form_action=reverse('ledger:account_create'),
+        submit_label='追加する',
+    )
 
 
 @login_required
@@ -467,21 +478,20 @@ def account_update(request: HttpRequest, pk: int) -> HttpResponse:
         form = AccountForm(request.POST, instance=account)
         if form.is_valid():
             form.save()
-            return _render_account_list(request, f'「{account.name}」を更新しました。')
-        context = {
-            'accounts': Account.objects.order_by('-is_active', 'name'),
-            'account_form': AccountForm(),
-            'edit_account_form': form,
-            'edit_account_pk': pk,
-        }
-        return render(request, 'ledger/partials/account_list.html', context, status=422)
-    context = {
-        'accounts': Account.objects.order_by('-is_active', 'name'),
-        'account_form': AccountForm(),
-        'edit_account_form': AccountForm(instance=account),
-        'edit_account_pk': pk,
-    }
-    return render(request, 'ledger/partials/account_list.html', context)
+            messages.success(request, f'「{account.name}」を更新しました。')
+            return redirect('ledger:settings')
+        return _render_account_form_page(
+            request, form,
+            page_title='口座を編集',
+            form_action=reverse('ledger:account_update', args=[pk]),
+            submit_label='更新する',
+        )
+    return _render_account_form_page(
+        request, AccountForm(instance=account),
+        page_title='口座を編集',
+        form_action=reverse('ledger:account_update', args=[pk]),
+        submit_label='更新する',
+    )
 
 
 @login_required
@@ -503,6 +513,15 @@ def _render_category_list(request: HttpRequest, flash: str = '') -> HttpResponse
     return render(request, 'ledger/partials/category_list.html', context)
 
 
+def _render_category_form_page(request: HttpRequest, form: CategoryForm, *, page_title: str, form_action: str, submit_label: str) -> HttpResponse:
+    return render(request, 'ledger/settings_form_page.html', {
+        'form': form,
+        'page_title': page_title,
+        'form_action': form_action,
+        'submit_label': submit_label,
+    })
+
+
 @login_required
 @require_http_methods(['GET', 'POST'])
 def category_create(request: HttpRequest) -> HttpResponse:
@@ -510,19 +529,20 @@ def category_create(request: HttpRequest) -> HttpResponse:
         form = CategoryForm(request.POST)
         if form.is_valid():
             form.save()
-            return _render_category_list(request, 'カテゴリを追加しました。')
-        context = {
-            'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
-            'category_form': form,
-            'show_category_form': True,
-        }
-        return render(request, 'ledger/partials/category_list.html', context, status=422)
-    context = {
-        'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
-        'category_form': CategoryForm(),
-        'show_category_form': True,
-    }
-    return render(request, 'ledger/partials/category_list.html', context)
+            messages.success(request, 'カテゴリを追加しました。')
+            return redirect('ledger:settings')
+        return _render_category_form_page(
+            request, form,
+            page_title='カテゴリを追加',
+            form_action=reverse('ledger:category_create'),
+            submit_label='追加する',
+        )
+    return _render_category_form_page(
+        request, CategoryForm(),
+        page_title='カテゴリを追加',
+        form_action=reverse('ledger:category_create'),
+        submit_label='追加する',
+    )
 
 
 @login_required
@@ -533,21 +553,20 @@ def category_update(request: HttpRequest, pk: int) -> HttpResponse:
         form = CategoryForm(request.POST, instance=category)
         if form.is_valid():
             form.save()
-            return _render_category_list(request, f'「{category.name}」を更新しました。')
-        context = {
-            'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
-            'category_form': CategoryForm(),
-            'edit_category_form': form,
-            'edit_category_pk': pk,
-        }
-        return render(request, 'ledger/partials/category_list.html', context, status=422)
-    context = {
-        'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
-        'category_form': CategoryForm(),
-        'edit_category_form': CategoryForm(instance=category),
-        'edit_category_pk': pk,
-    }
-    return render(request, 'ledger/partials/category_list.html', context)
+            messages.success(request, f'「{category.name}」を更新しました。')
+            return redirect('ledger:settings')
+        return _render_category_form_page(
+            request, form,
+            page_title='カテゴリを編集',
+            form_action=reverse('ledger:category_update', args=[pk]),
+            submit_label='更新する',
+        )
+    return _render_category_form_page(
+        request, CategoryForm(instance=category),
+        page_title='カテゴリを編集',
+        form_action=reverse('ledger:category_update', args=[pk]),
+        submit_label='更新する',
+    )
 
 
 @login_required

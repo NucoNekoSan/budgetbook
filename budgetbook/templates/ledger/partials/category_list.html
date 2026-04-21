@@ -3,12 +3,7 @@
   <div class="panel__body">
     <div class="toolbar">
       <h2 class="section-title">カテゴリ</h2>
-      <button
-        class="btn btn--ghost"
-        hx-get="{% url 'ledger:category_create' %}"
-        hx-target="#category-list"
-        hx-swap="innerHTML"
-      >+ 追加</button>
+      <a href="{% url 'ledger:category_create' %}" class="btn btn--ghost">+ 追加</a>
     </div>
 
     {% if flash_message %}
@@ -58,12 +53,7 @@
                   </td>
                   <td>
                     <div class="inline-actions">
-                      <button
-                        class="btn btn--ghost"
-                        hx-get="{% url 'ledger:category_update' cat.pk %}"
-                        hx-target="#category-list"
-                        hx-swap="innerHTML"
-                      >編集</button>
+                      <a href="{% url 'ledger:category_update' cat.pk %}" class="btn btn--ghost">編集</a>
                       <button
                         class="btn {% if cat.is_active %}btn--danger{% else %}btn--ghost{% endif %}"
                         hx-post="{% url 'ledger:category_toggle' cat.pk %}"

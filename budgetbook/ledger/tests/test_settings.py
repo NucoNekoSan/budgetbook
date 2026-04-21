@@ -42,8 +42,8 @@ class AccountCrudTest(TestCase):
             'name': '新規口座',
             'opening_balance': 5000,
             'notes': '',
-        })
-        self.assertEqual(resp.status_code, 200)
+        }, follow=True)
+        self.assertRedirects(resp, reverse('ledger:settings'))
         self.assertTrue(Account.objects.filter(name='新規口座').exists())
         self.assertContains(resp, '口座を追加しました')
 
@@ -54,8 +54,8 @@ class AccountCrudTest(TestCase):
             'opening_balance': 0,
             'notes': '',
         })
-        self.assertEqual(resp.status_code, 422)
-        self.assertContains(resp, '既に使われています', status_code=422)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '既に使われています')
 
     def test_edit_account_name(self):
         acct = Account.objects.create(name='旧名', opening_balance=1000)
@@ -64,7 +64,7 @@ class AccountCrudTest(TestCase):
             'opening_balance': 1000,
             'notes': '',
         })
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse('ledger:settings'))
         acct.refresh_from_db()
         self.assertEqual(acct.name, '新名')
 
@@ -104,7 +104,7 @@ class CategoryCrudTest(TestCase):
             'kind': 'expense',
             'notes': '',
         })
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(resp, reverse('ledger:settings'))
         self.assertTrue(Category.objects.filter(name='交通費').exists())
 
     def test_duplicate_category_name_shows_friendly_error(self):
@@ -114,8 +114,8 @@ class CategoryCrudTest(TestCase):
             'kind': 'income',
             'notes': '',
         })
-        self.assertEqual(resp.status_code, 422)
-        self.assertContains(resp, '既に使われています', status_code=422)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '既に使われています')
 
     def test_edit_category_kind_is_immutable(self):
         cat = Category.objects.create(name='給与', kind=Category.Kind.INCOME)
