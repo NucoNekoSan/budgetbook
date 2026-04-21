@@ -19,7 +19,9 @@ urlpatterns = [
     path('settings/accounts/new/', views.account_create, name='account_create'),
     path('settings/accounts/<int:pk>/edit/', views.account_update, name='account_update'),
     path('settings/accounts/<int:pk>/toggle/', views.account_toggle, name='account_toggle'),
+    path('settings/accounts/<int:pk>/delete/', views.account_delete, name='account_delete'),
     path('settings/categories/new/', views.category_create, name='category_create'),
     path('settings/categories/<int:pk>/edit/', views.category_update, name='category_update'),
     path('settings/categories/<int:pk>/toggle/', views.category_toggle, name='category_toggle'),
+    path('settings/categories/<int:pk>/delete/', views.category_delete, name='category_delete'),
 ]

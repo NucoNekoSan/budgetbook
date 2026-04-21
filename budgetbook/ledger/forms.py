@@ -133,7 +133,7 @@ class CategoryForm(forms.ModelForm):
         for field in self.fields.values():
             field.help_text = ''
         if self.instance and self.instance.pk:
-            self.fields['kind'].widget.attrs['disabled'] = True
+            self.fields['kind'].disabled = True
 
     def clean_name(self):
         name = self.cleaned_data['name']

@@ -8,6 +8,7 @@ from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import IntegerField, Q, Sum, Value
+from django.db.models.deletion import ProtectedError
 from django.db.models.functions import Coalesce, TruncMonth
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -451,7 +452,14 @@ def account_create(request: HttpRequest) -> HttpResponse:
             'show_account_form': True,
         }
         return render(request, 'ledger/partials/account_list.html', context, status=422)
-    return _render_account_list(request)
+    if request.GET.get('close'):
+        return _render_account_list(request)
+    context = {
+        'accounts': Account.objects.order_by('-is_active', 'name'),
+        'account_form': AccountForm(),
+        'show_account_form': True,
+    }
+    return render(request, 'ledger/partials/account_list.html', context)
 
 
 @login_required
@@ -489,6 +497,21 @@ def account_toggle(request: HttpRequest, pk: int) -> HttpResponse:
     return _render_account_list(request, f'「{account.name}」を{label}にしました。')
 
 
+@login_required
+@require_http_methods(['POST'])
+def account_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    account = get_object_or_404(Account, pk=pk)
+    name = account.name
+    try:
+        account.delete()
+    except ProtectedError:
+        return _render_account_list(
+            request,
+            f'「{name}」には取引が紐づいているため削除できません。先に取引を削除するか、無効化してください。',
+        )
+    return _render_account_list(request, f'「{name}」を削除しました。')
+
+
 def _render_category_list(request: HttpRequest, flash: str = '') -> HttpResponse:
     context = {
         'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
@@ -512,7 +535,14 @@ def category_create(request: HttpRequest) -> HttpResponse:
             'show_category_form': True,
         }
         return render(request, 'ledger/partials/category_list.html', context, status=422)
-    return _render_category_list(request)
+    if request.GET.get('close'):
+        return _render_category_list(request)
+    context = {
+        'categories': Category.objects.order_by('-is_active', 'kind', 'name'),
+        'category_form': CategoryForm(),
+        'show_category_form': True,
+    }
+    return render(request, 'ledger/partials/category_list.html', context)
 
 
 @login_required
@@ -548,6 +578,21 @@ def category_toggle(request: HttpRequest, pk: int) -> HttpResponse:
     category.save(update_fields=['is_active'])
     label = '有効' if category.is_active else '無効'
     return _render_category_list(request, f'「{category.name}」を{label}にしました。')
+
+
+@login_required
+@require_http_methods(['POST'])
+def category_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    category = get_object_or_404(Category, pk=pk)
+    name = category.name
+    try:
+        category.delete()
+    except ProtectedError:
+        return _render_category_list(
+            request,
+            f'「{name}」には取引が紐づいているため削除できません。先に取引を削除するか、無効化してください。',
+        )
+    return _render_category_list(request, f'「{name}」を削除しました。')
 
 
 # ---------------------------------------------------------------------------

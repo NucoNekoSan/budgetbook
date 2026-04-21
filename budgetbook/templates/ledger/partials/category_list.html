@@ -5,6 +5,7 @@
       <h2 class="section-title">カテゴリ</h2>
       <button
         class="btn btn--ghost"
+        type="button"
         hx-get="{% url 'ledger:category_create' %}"
         hx-target="#category-list"
         hx-swap="innerHTML"
@@ -17,6 +18,10 @@
 
     {% if show_category_form or not categories %}
       {% include 'ledger/partials/category_form.html' with form=category_form form_title='カテゴリを追加' submit_label='追加する' is_new=True %}
+    {% endif %}
+
+    {% if edit_category_pk %}
+      {% include 'ledger/partials/category_form.html' with form=edit_category_form form_title='カテゴリを編集' submit_label='更新する' edit_pk=edit_category_pk is_new=False %}
     {% endif %}
 
     {% if categories %}
@@ -32,48 +37,42 @@
           </thead>
           <tbody>
             {% for cat in categories %}
-              {% if edit_category_pk == cat.pk %}
-                <tr>
-                  <td colspan="4">
-                    {% include 'ledger/partials/category_form.html' with form=edit_category_form form_title='カテゴリを編集' submit_label='更新する' edit_pk=cat.pk is_new=False %}
-                  </td>
-                </tr>
-              {% else %}
-                <tr class="{% if not cat.is_active %}row--inactive{% endif %}">
-                  <td>
-                    <strong>{{ cat.name }}</strong>
-                    {% if cat.notes %}<div class="meta">{{ cat.notes|truncatechars:40 }}</div>{% endif %}
-                  </td>
-                  <td>
-                    <span class="chip {% if cat.kind == 'income' %}chip--income{% else %}chip--expense{% endif %}">
-                      {{ cat.get_kind_display }}
-                    </span>
-                  </td>
-                  <td>
-                    {% if cat.is_active %}
-                      <span class="chip chip--income">有効</span>
-                    {% else %}
-                      <span class="chip chip--expense">無効</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="inline-actions">
-                      <button
-                        class="btn btn--ghost"
-                        hx-get="{% url 'ledger:category_update' cat.pk %}"
-                        hx-target="#category-list"
-                        hx-swap="innerHTML"
-                      >編集</button>
-                      <button
-                        class="btn {% if cat.is_active %}btn--danger{% else %}btn--ghost{% endif %}"
-                        hx-post="{% url 'ledger:category_toggle' cat.pk %}"
-                        hx-target="#category-list"
-                        hx-swap="innerHTML"
-                      >{% if cat.is_active %}無効にする{% else %}有効にする{% endif %}</button>
-                    </div>
-                  </td>
-                </tr>
-              {% endif %}
+              <tr class="{% if not cat.is_active %}row--inactive{% endif %}">
+                <td>
+                  <strong>{{ cat.name }}</strong>
+                  {% if cat.notes %}<div class="meta">{{ cat.notes|truncatechars:40 }}</div>{% endif %}
+                </td>
+                <td>
+                  <span class="chip {% if cat.kind == 'income' %}chip--income{% else %}chip--expense{% endif %}">
+                    {{ cat.get_kind_display }}
+                  </span>
+                </td>
+                <td>
+                  {% if cat.is_active %}
+                    <span class="chip chip--income">有効</span>
+                  {% else %}
+                    <span class="chip chip--expense">無効</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="inline-actions">
+                    <button
+                      class="btn btn--ghost"
+                      type="button"
+                      hx-get="{% url 'ledger:category_update' cat.pk %}"
+                      hx-target="#category-list"
+                      hx-swap="innerHTML"
+                    >編集</button>
+                    <button
+                      class="btn {% if cat.is_active %}btn--danger{% else %}btn--ghost{% endif %}"
+                      type="button"
+                      hx-post="{% url 'ledger:category_toggle' cat.pk %}"
+                      hx-target="#category-list"
+                      hx-swap="innerHTML"
+                    >{% if cat.is_active %}無効にする{% else %}有効にする{% endif %}</button>
+                  </div>
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>

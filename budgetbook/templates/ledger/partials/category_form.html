@@ -5,6 +5,7 @@
       hx-post="{% url 'ledger:category_create' %}"
     {% else %}
       hx-post="{% url 'ledger:category_update' edit_pk %}"
+      hx-confirm="このカテゴリの内容を更新します。よろしいですか？"
     {% endif %}
     hx-target="#category-list"
     hx-swap="innerHTML"
@@ -41,10 +42,20 @@
       <button
         class="btn btn--ghost"
         type="button"
-        hx-get="{% url 'ledger:category_create' %}"
+        hx-get="{% url 'ledger:category_create' %}?close=1"
         hx-target="#category-list"
         hx-swap="innerHTML"
       >キャンセル</button>
+      {% if not is_new %}
+        <button
+          class="btn btn--danger"
+          type="button"
+          hx-post="{% url 'ledger:category_delete' edit_pk %}"
+          hx-target="#category-list"
+          hx-swap="innerHTML"
+          hx-confirm="このカテゴリを削除します。この操作は取り消せません。よろしいですか？"
+        >削除</button>
+      {% endif %}
     </div>
   </form>
 </div>
